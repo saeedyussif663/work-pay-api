@@ -10,6 +10,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
 import { Repository } from 'typeorm';
 import { AppLogger } from '../common/logger/logger.service';
+import { SignedUser } from '../types';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { LoginUserDto } from './dto/login-user.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
@@ -132,12 +133,9 @@ export class AuthService {
       throw new BadRequestException('Passwords do not match');
 
     try {
-      const payload: { sub: string; email: string } = this.jwtService.verify(
-        token,
-        {
-          secret: this.configService.get<string>('JWT_RESET_SECRET'),
-        },
-      );
+      const payload: SignedUser = this.jwtService.verify(token, {
+        secret: this.configService.get<string>('JWT_RESET_SECRET'),
+      });
 
       const existingUser = await this.usersRepository.findOneBy({
         id: payload.sub,
@@ -154,5 +152,10 @@ export class AuthService {
     } catch {
       throw new UnauthorizedException('Invalid or expired token');
     }
+  }
+
+  async getUser(id: string | undefined) {
+    const user = await this.usersRepository.findOneBy({ id });
+    return { data: user };
   }
 }
