@@ -1,11 +1,14 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import ms from 'ms';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { AuthModule } from './auth/auth.module';
 import { LoggerModule } from './common/logger/logger.module';
 import { HealthModule } from './health/health.module';
-import { AuthModule } from './auth/auth.module';
+import { VehiclesModule } from './vehicles/vehicles.module';
 
 @Module({
   imports: [
@@ -24,9 +27,22 @@ import { AuthModule } from './auth/auth.module';
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
       }),
     }),
+    JwtModule.registerAsync({
+      global: true,
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        secret: config.get<string>('JWT_SECRET'),
+        signOptions: {
+          expiresIn: (config.get<string>('JWT_EXPIRES_IN') ??
+            '7d') as ms.StringValue,
+        },
+      }),
+    }),
     HealthModule,
     LoggerModule,
     AuthModule,
+    VehiclesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

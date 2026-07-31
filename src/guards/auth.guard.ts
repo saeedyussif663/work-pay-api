@@ -7,11 +7,15 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
 import { Observable } from 'rxjs';
+import { AppLogger } from '../common/logger/logger.service';
 import { SignedUser } from '../types';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
-  constructor(private readonly jwtService: JwtService) {}
+  constructor(
+    private readonly jwtService: JwtService,
+    private readonly logger: AppLogger,
+  ) {}
 
   canActivate(
     context: ExecutionContext,
@@ -20,6 +24,7 @@ export class AuthGuard implements CanActivate {
     const token = this.extractTokenFromHeader(request);
 
     if (!token) {
+      this.logger.warn('Attempt to access a restricted resource without token');
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -28,6 +33,10 @@ export class AuthGuard implements CanActivate {
 
       request['user'] = payload;
     } catch {
+      this.logger.warn(
+        'Attempt to access a restricted resource with an expired token',
+      );
+
       throw new UnauthorizedException('Invalid credentials');
     }
 

@@ -88,6 +88,8 @@ export class AuthService {
       email: user.email,
     });
 
+    this.logger.log(`User-${email} log in successful`);
+
     return {
       message: 'User successfully logged in',
       data: {
@@ -154,7 +156,7 @@ export class AuthService {
     }
   }
 
-  async getUser(id: string | undefined) {
+  async getUser(id: number | undefined) {
     const user = await this.usersRepository.findOneBy({ id });
     return { data: user };
   }
