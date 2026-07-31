@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AppLogger } from '../common/logger/logger.service';
@@ -14,9 +18,19 @@ export class VehiclesService {
     private logger: AppLogger,
   ) {}
 
-  async getAll() {
+  private checkOwnership(vehicle: Vehicle, userId: number, action: string) {
+    if (vehicle.user.id !== userId) {
+      this.logger.warn(
+        `User-${userId} attempted to ${action} Vehicle-${vehicle.id} they do not own`,
+      );
+      throw new ForbiddenException('You do not have access to this resource');
+    }
+  }
+
+  async getAll(id: number | undefined) {
+    if (!id) return;
     const vehicles = await this.vehiclesRepository.find({
-      where: { isActive: true },
+      where: { isActive: true, id },
     });
 
     return {
@@ -25,7 +39,7 @@ export class VehiclesService {
     };
   }
 
-  async findOne(id: number) {
+  async findOne(id: number, userId: number) {
     const vehicle = await this.vehiclesRepository.findOne({
       where: { id, isActive: true },
       relations: { user: true },
@@ -33,6 +47,10 @@ export class VehiclesService {
 
     if (!vehicle) {
       throw new NotFoundException('Vehicle not found');
+    }
+
+    if (vehicle.user.id !== userId) {
+      this.checkOwnership(vehicle, userId, 'access');
     }
 
     const { user, ...rest } = vehicle;
@@ -66,14 +84,22 @@ export class VehiclesService {
     };
   }
 
-  async update(id: number, updateVehicleBody: UpdateVehicleDto) {
-    const vehicle = await this.vehiclesRepository.findOneBy({
-      id,
-      isActive: true,
+  async update(
+    id: number,
+    updateVehicleBody: UpdateVehicleDto,
+    userId: number,
+  ) {
+    const vehicle = await this.vehiclesRepository.findOne({
+      where: { id, isActive: true },
+      relations: { user: true },
     });
 
     if (!vehicle) {
       throw new NotFoundException('Vehicle not found');
+    }
+
+    if (vehicle.user.id !== userId) {
+      this.checkOwnership(vehicle, userId, 'update');
     }
 
     await this.vehiclesRepository.update(id, updateVehicleBody);
@@ -93,14 +119,18 @@ export class VehiclesService {
     };
   }
 
-  async remove(id: number) {
-    const vehicle = await this.vehiclesRepository.findOneBy({
-      id,
-      isActive: true,
+  async remove(id: number, userId: number) {
+    const vehicle = await this.vehiclesRepository.findOne({
+      where: { id, isActive: true },
+      relations: { user: true },
     });
 
     if (!vehicle) {
       throw new NotFoundException('Vehicle not found');
+    }
+
+    if (vehicle.user.id !== userId) {
+      this.checkOwnership(vehicle, userId, 'delete');
     }
 
     await this.vehiclesRepository.update(id, { isActive: false });

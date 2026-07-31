@@ -22,31 +22,35 @@ export class VehiclesController {
   constructor(private readonly vehiclesService: VehiclesService) {}
 
   @Get()
-  getAll() {
-    return this.vehiclesService.getAll();
+  getAll(@Req() req: Request) {
+    return this.vehiclesService.getAll(req?.user?.sub);
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.vehiclesService.findOne(id);
+  findOne(@Param('id', ParseIntPipe) id: number, @Req() req: Request) {
+    if (!req.user) return;
+    return this.vehiclesService.findOne(id, req.user.sub);
   }
 
   @Post()
   create(@Body() createVehicleBody: CreateVehicleDto, @Req() req: Request) {
     if (!req.user) return;
-    return this.vehiclesService.create(createVehicleBody, req?.user?.sub);
+    return this.vehiclesService.create(createVehicleBody, req.user.sub);
   }
 
   @Patch(':id')
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateVehicleBody: UpdateVehicleDto,
+    @Req() req: Request,
   ) {
-    return this.vehiclesService.update(id, updateVehicleBody);
+    if (!req.user) return;
+    return this.vehiclesService.update(id, updateVehicleBody, req.user.sub);
   }
 
   @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.vehiclesService.remove(id);
+  remove(@Param('id', ParseIntPipe) id: number, @Req() req: Request) {
+    if (!req.user) return;
+    return this.vehiclesService.remove(id, req.user.sub);
   }
 }
