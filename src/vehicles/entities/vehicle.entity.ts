@@ -5,10 +5,12 @@ import {
   Entity,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 import { User } from '../../auth/entities/user.entity';
+import { Payment } from '../../payments/entity/payment.entity';
 
 @Entity('vehicles')
 export class Vehicle {
@@ -34,9 +36,16 @@ export class Vehicle {
   @Min(0)
   expectedReturn!: number;
 
+  @OneToMany(() => Payment, (payment) => payment.vehicle)
+  payments!: Payment[];
+
   @ManyToOne(() => User, { nullable: false })
   @JoinColumn()
   user!: User;
+
+  @Column({ nullable: false })
+  @Min(0)
+  weeklyAmount!: number;
 
   @Column({ default: true, select: false })
   isActive!: boolean;

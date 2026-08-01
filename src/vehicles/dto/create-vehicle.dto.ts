@@ -21,4 +21,8 @@ export class CreateVehicleDto {
   @IsNumber()
   @Min(0)
   expectedReturn!: number;
+
+  @IsNumber()
+  @Min(0)
+  weeklyAmount!: number;
 }

@@ -18,10 +18,10 @@ export class VehiclesService {
     private logger: AppLogger,
   ) {}
 
-  private checkOwnership(vehicle: Vehicle, userId: number, action: string) {
-    if (vehicle.user.id !== userId) {
+  checkOwnership(id: number, userId: number, action: string) {
+    if (id !== userId) {
       this.logger.warn(
-        `User-${userId} attempted to ${action} Vehicle-${vehicle.id} they do not own`,
+        `User-${userId} attempted to ${action} Vehicle-${id} they do not own`,
       );
       throw new ForbiddenException('You do not have access to this resource');
     }
@@ -30,7 +30,7 @@ export class VehiclesService {
   async getAll(id: number | undefined) {
     if (!id) return;
     const vehicles = await this.vehiclesRepository.find({
-      where: { isActive: true, id },
+      where: { isActive: true, user: { id } },
     });
 
     return {
@@ -49,9 +49,7 @@ export class VehiclesService {
       throw new NotFoundException('Vehicle not found');
     }
 
-    if (vehicle.user.id !== userId) {
-      this.checkOwnership(vehicle, userId, 'access');
-    }
+    this.checkOwnership(vehicle.user.id, userId, 'access');
 
     const { user, ...rest } = vehicle;
 
@@ -98,9 +96,7 @@ export class VehiclesService {
       throw new NotFoundException('Vehicle not found');
     }
 
-    if (vehicle.user.id !== userId) {
-      this.checkOwnership(vehicle, userId, 'update');
-    }
+    this.checkOwnership(vehicle.user.id, userId, 'update');
 
     await this.vehiclesRepository.update(id, updateVehicleBody);
 
@@ -129,9 +125,7 @@ export class VehiclesService {
       throw new NotFoundException('Vehicle not found');
     }
 
-    if (vehicle.user.id !== userId) {
-      this.checkOwnership(vehicle, userId, 'delete');
-    }
+    this.checkOwnership(vehicle.user.id, userId, 'delete');
 
     await this.vehiclesRepository.update(id, { isActive: false });
 
