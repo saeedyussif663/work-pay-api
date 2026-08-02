@@ -10,7 +10,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { User } from '../../auth/entities/user.entity';
-import { Payment } from '../../payments/entity/payment.entity';
+import { Payment } from '../../payments/entities/payment.entity';
 
 @Entity('vehicles')
 export class Vehicle {

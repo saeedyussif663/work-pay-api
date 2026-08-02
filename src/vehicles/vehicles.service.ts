@@ -1,11 +1,10 @@
-import {
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AppLogger } from '../common/logger/logger.service';
+import { OwnershipService } from '../common/ownership/ownership.service';
+import { calculateExpectedCompletionDate } from '../common/utils/payment-calculations';
+import { Payment } from '../payments/entities/payment.entity';
 import { CreateVehicleDto } from './dto/create-vehicle.dto';
 import { UpdateVehicleDto } from './dto/update-vehicle.dto';
 import { Vehicle } from './entities/vehicle.entity';
@@ -15,17 +14,11 @@ export class VehiclesService {
   constructor(
     @InjectRepository(Vehicle)
     private vehiclesRepository: Repository<Vehicle>,
+    @InjectRepository(Payment)
+    private paymentsRepository: Repository<Payment>,
     private logger: AppLogger,
+    private ownershipService: OwnershipService,
   ) {}
-
-  checkOwnership(id: number, userId: number, action: string) {
-    if (id !== userId) {
-      this.logger.warn(
-        `User-${userId} attempted to ${action} Vehicle-${id} they do not own`,
-      );
-      throw new ForbiddenException('You do not have access to this resource');
-    }
-  }
 
   async getAll(id: number | undefined) {
     if (!id) return;
@@ -49,13 +42,29 @@ export class VehiclesService {
       throw new NotFoundException('Vehicle not found');
     }
 
-    this.checkOwnership(vehicle.user.id, userId, 'access');
+    this.ownershipService.check(vehicle.user.id, userId, 'Vehicle', 'access');
+
+    const payments = await this.paymentsRepository.find({
+      where: { vehicle: { id } },
+    });
+    const totalPaid = payments.reduce((sum, p) => sum + Number(p.amount), 0);
+    const amountRemaining = vehicle.expectedReturn - totalPaid;
+    const expectedCompletionDate = calculateExpectedCompletionDate(
+      amountRemaining,
+      vehicle.weeklyAmount,
+    );
 
     const { user, ...rest } = vehicle;
 
     return {
       message: 'Vehicle fetched successfully',
-      data: { ...rest, owner: user.name },
+      data: {
+        ...rest,
+        owner: user.name,
+        totalPaid,
+        amountRemaining,
+        expectedCompletionDate,
+      },
     };
   }
 
@@ -96,7 +105,7 @@ export class VehiclesService {
       throw new NotFoundException('Vehicle not found');
     }
 
-    this.checkOwnership(vehicle.user.id, userId, 'update');
+    this.ownershipService.check(vehicle.user.id, userId, 'Vehicle', 'update');
 
     await this.vehiclesRepository.update(id, updateVehicleBody);
 
@@ -125,7 +134,7 @@ export class VehiclesService {
       throw new NotFoundException('Vehicle not found');
     }
 
-    this.checkOwnership(vehicle.user.id, userId, 'delete');
+    this.ownershipService.check(vehicle.user.id, userId, 'Vehicle', 'delete');
 
     await this.vehiclesRepository.update(id, { isActive: false });
 

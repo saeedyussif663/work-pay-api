@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   Param,
   ParseIntPipe,
   Post,
@@ -16,6 +17,21 @@ import { PaymentsService } from './payments.service';
 @Controller('payments')
 export class PaymentsController {
   constructor(private readonly paymentsService: PaymentsService) {}
+
+  @Get()
+  findAllForUser(@Req() req: Request) {
+    if (!req.user) return;
+    return this.paymentsService.findAllForUser(req.user.sub);
+  }
+
+  @Get('vehicle/:vehicleId')
+  findAllForVehicle(
+    @Param('vehicleId', ParseIntPipe) vehicleId: number,
+    @Req() req: Request,
+  ) {
+    if (!req.user) return;
+    return this.paymentsService.findAllForVehicle(vehicleId, req.user.sub);
+  }
 
   @Post(':vehicleId')
   create(

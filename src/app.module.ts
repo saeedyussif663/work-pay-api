@@ -6,10 +6,11 @@ import ms from 'ms';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
+import { CommonModule } from './common/common.module';
 import { LoggerModule } from './common/logger/logger.module';
 import { HealthModule } from './health/health.module';
-import { VehiclesModule } from './vehicles/vehicles.module';
 import { PaymentsModule } from './payments/payments.module';
+import { VehiclesModule } from './vehicles/vehicles.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { PaymentsModule } from './payments/payments.module';
     }),
     HealthModule,
     LoggerModule,
+    CommonModule,
     AuthModule,
     VehiclesModule,
     PaymentsModule,
