@@ -7,12 +7,14 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
 import { type Request } from 'express';
 import { AuthGuard } from '../guards/auth.guard';
 import { CreateVehicleDto } from './dto/create-vehicle.dto';
+import { FindVehiclesQueryDto } from './dto/find-vehicles-query.dto';
 import { UpdateVehicleDto } from './dto/update-vehicle.dto';
 import { VehiclesService } from './vehicles.service';
 
@@ -22,8 +24,8 @@ export class VehiclesController {
   constructor(private readonly vehiclesService: VehiclesService) {}
 
   @Get()
-  getAll(@Req() req: Request) {
-    return this.vehiclesService.getAll(req?.user?.sub);
+  getAll(@Query() query: FindVehiclesQueryDto, @Req() req: Request) {
+    return this.vehiclesService.getAll(req?.user?.sub, query);
   }
 
   @Get(':id')

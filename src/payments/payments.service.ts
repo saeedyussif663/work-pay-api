@@ -6,6 +6,7 @@ import { OwnershipService } from '../common/ownership/ownership.service';
 import { calculateExpectedCompletionDate } from '../common/utils/payment-calculations';
 import { Vehicle } from '../vehicles/entities/vehicle.entity';
 import { CreatePaymentDto } from './dto/create-payment.dto';
+import { FindPaymentsQueryDto } from './dto/find-payments-query.dto';
 import { Payment } from './entities/payment.entity';
 
 @Injectable()
@@ -77,12 +78,28 @@ export class PaymentsService {
     };
   }
 
-  async findAllForUser(userId: number) {
-    const payments = await this.paymentsRepository.find({
-      where: { vehicle: { user: { id: userId } } },
-      relations: { vehicle: true },
-      order: { paidAt: 'DESC' },
-    });
+  async findAllForUser(userId: number, query: FindPaymentsQueryDto) {
+    const { limit, page, search } = query;
+
+    const qb = this.paymentsRepository
+      .createQueryBuilder('payment')
+      .leftJoinAndSelect('payment.vehicle', 'vehicle')
+      .where('vehicle.userId = :userId', { userId });
+
+    if (search) {
+      qb.andWhere(
+        '(vehicle.name ILIKE :search OR vehicle.rider ILIKE :search)',
+        { search: `%${search}%` },
+      );
+    }
+
+    const total = await qb.getCount();
+
+    const payments = await qb
+      .orderBy('payment.paidAt', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getMany();
 
     const data = payments.map(({ vehicle, ...rest }) => ({
       ...rest,
@@ -90,9 +107,18 @@ export class PaymentsService {
       riderName: vehicle.rider,
     }));
 
+    const numberOfPages = Math.ceil(total / limit);
+
     return {
       message: 'Payments fetched successfully',
       data,
+      metadata: {
+        total,
+        numberOfPages,
+        currentPage: page,
+        hasPreviousPage: page > 1,
+        hasNextPage: page < numberOfPages,
+      },
     };
   }
 

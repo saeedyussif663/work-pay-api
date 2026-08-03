@@ -5,12 +5,14 @@ import {
   Param,
   ParseIntPipe,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
 import { type Request } from 'express';
 import { AuthGuard } from '../guards/auth.guard';
 import { CreatePaymentDto } from './dto/create-payment.dto';
+import { FindPaymentsQueryDto } from './dto/find-payments-query.dto';
 import { PaymentsService } from './payments.service';
 
 @UseGuards(AuthGuard)
@@ -19,9 +21,9 @@ export class PaymentsController {
   constructor(private readonly paymentsService: PaymentsService) {}
 
   @Get()
-  findAllForUser(@Req() req: Request) {
+  findAllForUser(@Req() req: Request, @Query() query: FindPaymentsQueryDto) {
     if (!req.user) return;
-    return this.paymentsService.findAllForUser(req.user.sub);
+    return this.paymentsService.findAllForUser(req.user.sub, query);
   }
 
   @Get(':id')

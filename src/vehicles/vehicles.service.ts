@@ -6,6 +6,7 @@ import { OwnershipService } from '../common/ownership/ownership.service';
 import { calculateExpectedCompletionDate } from '../common/utils/payment-calculations';
 import { Payment } from '../payments/entities/payment.entity';
 import { CreateVehicleDto } from './dto/create-vehicle.dto';
+import { FindVehiclesQueryDto } from './dto/find-vehicles-query.dto';
 import { UpdateVehicleDto } from './dto/update-vehicle.dto';
 import { Vehicle } from './entities/vehicle.entity';
 
@@ -20,15 +21,44 @@ export class VehiclesService {
     private ownershipService: OwnershipService,
   ) {}
 
-  async getAll(id: number | undefined) {
-    if (!id) return;
-    const vehicles = await this.vehiclesRepository.find({
-      where: { isActive: true, user: { id } },
-    });
+  async getAll(userId: number | undefined, query: FindVehiclesQueryDto) {
+    if (!userId) return;
+
+    const { limit, page, search } = query;
+
+    const qb = this.vehiclesRepository
+      .createQueryBuilder('vehicle')
+      .leftJoinAndSelect('vehicle.user', 'user')
+      .where('vehicle.userId = :userId', { userId })
+      .andWhere('vehicle.isActive = :isActive', { isActive: true });
+
+    if (search) {
+      qb.andWhere(
+        '(vehicle.name ILIKE :search OR vehicle.rider ILIKE :search)',
+        { search: `%${search}%` },
+      );
+    }
+
+    const total = await qb.getCount();
+
+    const vehicles = await qb
+      .orderBy('vehicle.id', 'ASC')
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getMany();
+
+    const numberOfPages = Math.ceil(total / limit);
 
     return {
       message: 'Vehicles fetched successfully',
       data: vehicles,
+      metadata: {
+        total,
+        numberOfPages,
+        currentPage: page,
+        hasPreviousPage: page > 1,
+        hasNextPage: page < numberOfPages,
+      },
     };
   }
 
