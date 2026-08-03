@@ -24,6 +24,12 @@ export class PaymentsController {
     return this.paymentsService.findAllForUser(req.user.sub);
   }
 
+  @Get(':id')
+  findOne(@Param('id', ParseIntPipe) id: number, @Req() req: Request) {
+    if (!req.user) return;
+    return this.paymentsService.findOne(id, req.user.sub);
+  }
+
   @Get('vehicle/:vehicleId')
   findAllForVehicle(
     @Param('vehicleId', ParseIntPipe) vehicleId: number,

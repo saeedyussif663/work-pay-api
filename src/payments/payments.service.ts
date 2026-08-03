@@ -96,6 +96,31 @@ export class PaymentsService {
     };
   }
 
+  async findOne(id: number, userId: number) {
+    const payment = await this.paymentsRepository.findOne({
+      where: { id },
+      relations: { vehicle: { user: true } },
+    });
+
+    if (!payment) {
+      throw new NotFoundException('Payment not found');
+    }
+
+    this.ownershipService.check(
+      payment.vehicle.user.id,
+      userId,
+      'Payment',
+      'view',
+    );
+
+    const { vehicle, ...rest } = payment;
+
+    return {
+      message: 'Payment fetched successfully',
+      data: { ...rest, vehicleName: vehicle.name, riderName: vehicle.rider },
+    };
+  }
+
   async findAllForVehicle(vehicleId: number, userId: number) {
     const vehicle = await this.vehiclesRepository.findOne({
       where: { id: vehicleId, isActive: true },
