@@ -12,13 +12,18 @@ export class MailService {
     private readonly configService: ConfigService,
   ) {}
 
-  async sendPasswordResetEmail(user: User, otpCode: string): Promise<void> {
+  async sendPasswordResetEmail(user: User, token: string): Promise<void> {
     try {
       await this.mailerService.sendMail({
         to: user.email,
         subject: 'Password Reset Request',
         template: 'reset-password',
-        context: { firstName: user.name, otpCode },
+        context: {
+          firstName: user.name,
+          email: user.email,
+          resetUrl: `${this.configService.get<string>('FRONTEND_URL')}/forgot-password/${token}`,
+          year: new Date().getFullYear(),
+        },
       });
       this.logger.log(`Password reset email sent to ${user.email}`);
     } catch (error) {
@@ -38,7 +43,7 @@ export class MailService {
         context: {
           name: user.name,
           email: user.email,
-          ctaUrl: this.configService.get<string>('FRONTEND_URL'),
+          ctaUrl: `${this.configService.get<string>('FRONTEND_URL')}/signin`,
           year: new Date().getFullYear(),
         },
       });

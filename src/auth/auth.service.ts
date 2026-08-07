@@ -125,8 +125,7 @@ export class AuthService {
       },
     );
 
-    // remove console.log and send to email
-    console.log({ token });
+    await this.mailService.sendPasswordResetEmail(existingUser, token);
 
     return { message: 'Verification token sent to email' };
   }
