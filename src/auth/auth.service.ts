@@ -10,6 +10,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
 import { Repository } from 'typeorm';
 import { AppLogger } from '../common/logger/logger.service';
+import { MailService } from '../mail/mail.service';
 import { SignedUser } from '../types';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { LoginUserDto } from './dto/login-user.dto';
@@ -25,6 +26,7 @@ export class AuthService {
     private logger: AppLogger,
     private jwtService: JwtService,
     private configService: ConfigService,
+    private mailService: MailService,
   ) {}
 
   async signUp(createUserDto: CreateUserDto) {
@@ -49,6 +51,7 @@ export class AuthService {
     await this.usersRepository.save(user);
 
     this.logger.log(`User-${user.email} created successfully`);
+    await this.mailService.sendWelcomeEmail(user);
 
     return {
       message: 'User created successfully',

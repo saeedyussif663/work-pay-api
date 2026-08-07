@@ -9,6 +9,7 @@ import { AuthModule } from './auth/auth.module';
 import { CommonModule } from './common/common.module';
 import { LoggerModule } from './common/logger/logger.module';
 import { HealthModule } from './health/health.module';
+import { MailModule } from './mail/mail.module';
 import { PaymentsModule } from './payments/payments.module';
 import { VehiclesModule } from './vehicles/vehicles.module';
 
@@ -41,6 +42,7 @@ import { VehiclesModule } from './vehicles/vehicles.module';
         },
       }),
     }),
+    MailModule,
     HealthModule,
     LoggerModule,
     CommonModule,
