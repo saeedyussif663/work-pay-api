@@ -8,6 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
+import { JwtPayload } from 'jsonwebtoken';
 import { Repository } from 'typeorm';
 import { AppLogger } from '../common/logger/logger.service';
 import { MailService } from '../mail/mail.service';
@@ -91,6 +92,12 @@ export class AuthService {
       email: user.email,
     });
 
+    const payload = this.jwtService.decode<JwtPayload>(token);
+
+    const expiresAt = payload.exp
+      ? new Date(payload.exp * 1000).toISOString()
+      : null;
+
     this.logger.log(`User-${email} log in successful`);
 
     return {
@@ -102,6 +109,7 @@ export class AuthService {
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
         token,
+        expiresAt: expiresAt,
       },
     };
   }
