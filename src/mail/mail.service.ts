@@ -23,6 +23,7 @@ export class MailService {
           email: user.email,
           resetUrl: `${this.configService.get<string>('FRONTEND_URL')}/forgot-password/${token}`,
           year: new Date().getFullYear(),
+          duration: this.configService.get<string>('JWT_RESET_EXPIRES_IN'),
         },
       });
       this.logger.log(`Password reset email sent to ${user.email}`);
