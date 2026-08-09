@@ -8,6 +8,7 @@ import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { CommonModule } from './common/common.module';
 import { LoggerModule } from './common/logger/logger.module';
+import { dataSourceOptions } from './db/data-source';
 import { HealthModule } from './health/health.module';
 import { MailModule } from './mail/mail.module';
 import { PaymentsModule } from './payments/payments.module';
@@ -16,20 +17,7 @@ import { VehiclesModule } from './vehicles/vehicles.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    TypeOrmModule.forRootAsync({
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        type: 'postgres',
-        host: config.get('PGHOST'),
-        port: config.get('PGPORT'),
-        username: config.get('PGUSER'),
-        password: config.get('PGPASSWORD'),
-        database: config.get('PGDATABASE'),
-        autoLoadEntities: true,
-        synchronize: process.env.NODE_ENV === 'development',
-        entities: [__dirname + '/**/*.entity{.ts,.js}'],
-      }),
-    }),
+    TypeOrmModule.forRoot(dataSourceOptions),
     JwtModule.registerAsync({
       global: true,
       imports: [ConfigModule],
