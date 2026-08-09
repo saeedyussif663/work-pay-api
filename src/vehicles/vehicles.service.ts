@@ -1,9 +1,12 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { AppLogger } from '../common/logger/logger.service';
 import { OwnershipService } from '../common/ownership/ownership.service';
-import { calculateExpectedCompletionDate } from '../common/utils/payment-calculations';
+import {
+  calculateCompletionProjection,
+  calculateExpectedCompletionDate,
+} from '../common/utils/payment-calculations';
 import { Payment } from '../payments/entities/payment.entity';
 import { CreateVehicleDto } from './dto/create-vehicle.dto';
 import { FindVehiclesQueryDto } from './dto/find-vehicles-query.dto';
@@ -49,9 +52,34 @@ export class VehiclesService {
 
     const numberOfPages = Math.ceil(total / limit);
 
+    const vehicleIds = vehicles.map((v) => v.id);
+    const payments = vehicleIds.length
+      ? await this.paymentsRepository.find({
+          where: { vehicle: { id: In(vehicleIds) } },
+          relations: { vehicle: true },
+        })
+      : [];
+
+    const paymentsByVehicleId = new Map<number, Payment[]>();
+    for (const payment of payments) {
+      const list = paymentsByVehicleId.get(payment.vehicle.id) ?? [];
+      list.push(payment);
+      paymentsByVehicleId.set(payment.vehicle.id, list);
+    }
+
+    const data = vehicles.map((vehicle) => {
+      const { user, ...rest } = vehicle;
+      const projection = calculateCompletionProjection(
+        vehicle,
+        paymentsByVehicleId.get(vehicle.id) ?? [],
+      );
+
+      return { ...rest, owner: user.name, ...projection };
+    });
+
     return {
       message: 'Vehicles fetched successfully',
-      data: vehicles,
+      data,
       metadata: {
         total,
         numberOfPages,
@@ -77,12 +105,7 @@ export class VehiclesService {
     const payments = await this.paymentsRepository.find({
       where: { vehicle: { id } },
     });
-    const totalPaid = payments.reduce((sum, p) => sum + Number(p.amount), 0);
-    const amountRemaining = vehicle.expectedReturn - totalPaid;
-    const expectedCompletionDate = calculateExpectedCompletionDate(
-      amountRemaining,
-      vehicle.weeklyAmount,
-    );
+    const projection = calculateCompletionProjection(vehicle, payments);
 
     const { user, ...rest } = vehicle;
 
@@ -91,16 +114,21 @@ export class VehiclesService {
       data: {
         ...rest,
         owner: user.name,
-        totalPaid,
-        amountRemaining,
-        expectedCompletionDate,
+        ...projection,
       },
     };
   }
 
   async create(createVehicleBody: CreateVehicleDto, userId: number) {
+    const expectedCompletionDate = calculateExpectedCompletionDate(
+      createVehicleBody.expectedReturn,
+      createVehicleBody.weeklyAmount,
+      createVehicleBody.startDate,
+    );
+
     const vehicle = this.vehiclesRepository.create({
       ...createVehicleBody,
+      expectedCompletionDate,
       user: { id: userId },
     });
 
@@ -112,12 +140,13 @@ export class VehiclesService {
     });
 
     const { user, ...rest } = full!;
+    const projection = calculateCompletionProjection(full!, []);
 
     this.logger.log(`Vehicle-${saved.id} created successfully`);
 
     return {
       message: 'Vehicle created successfully',
-      data: { ...rest, owner: user.name },
+      data: { ...rest, owner: user.name, ...projection },
     };
   }
 

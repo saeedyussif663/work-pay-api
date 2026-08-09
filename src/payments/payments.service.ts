@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AppLogger } from '../common/logger/logger.service';
 import { OwnershipService } from '../common/ownership/ownership.service';
-import { calculateExpectedCompletionDate } from '../common/utils/payment-calculations';
+import { calculateCompletionProjection } from '../common/utils/payment-calculations';
 import { Vehicle } from '../vehicles/entities/vehicle.entity';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { FindPaymentsQueryDto } from './dto/find-payments-query.dto';
@@ -56,12 +56,7 @@ export class PaymentsService {
       where: { vehicle: { id: vehicleId } },
     });
 
-    const totalPaid = allPayments.reduce((sum, p) => sum + Number(p.amount), 0);
-    const amountRemaining = vehicle.expectedReturn - totalPaid;
-    const expectedCompletionDate = calculateExpectedCompletionDate(
-      amountRemaining,
-      vehicle.weeklyAmount,
-    );
+    const projection = calculateCompletionProjection(vehicle, allPayments);
 
     const { vehicle: _vehicle, ...rest } = payment;
 
@@ -71,9 +66,7 @@ export class PaymentsService {
         ...rest,
         vehicleName: vehicle.name,
         riderName: vehicle.rider,
-        totalPaid,
-        amountRemaining,
-        expectedCompletionDate,
+        ...projection,
       },
     };
   }
@@ -169,21 +162,14 @@ export class PaymentsService {
       order: { paidAt: 'DESC' },
     });
 
-    const totalPaid = payments.reduce((sum, p) => sum + Number(p.amount), 0);
-    const amountRemaining = vehicle.expectedReturn - totalPaid;
-    const expectedCompletionDate = calculateExpectedCompletionDate(
-      amountRemaining,
-      vehicle.weeklyAmount,
-    );
+    const projection = calculateCompletionProjection(vehicle, payments);
 
     return {
       message: 'Payments fetched successfully',
       data: {
         vehicleName: vehicle.name,
         riderName: vehicle.rider,
-        totalPaid,
-        amountRemaining,
-        expectedCompletionDate,
+        ...projection,
         payments,
       },
     };

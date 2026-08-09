@@ -47,6 +47,9 @@ export class Vehicle {
   @Min(0)
   weeklyAmount!: number;
 
+  @Column({ type: 'timestamp', nullable: true })
+  expectedCompletionDate!: Date | null;
+
   @Column({ default: true, select: false })
   isActive!: boolean;
 
