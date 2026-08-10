@@ -90,6 +90,28 @@ export class VehiclesService {
     };
   }
 
+  async list(userId: number | undefined) {
+    if (!userId) return;
+
+    const vehicles = await this.vehiclesRepository
+      .createQueryBuilder('vehicle')
+      .select(['vehicle.id', 'vehicle.name'])
+      .where('vehicle.userId = :userId', { userId })
+      .andWhere('vehicle.isActive = :isActive', { isActive: true })
+      .orderBy('vehicle.name', 'ASC')
+      .getMany();
+
+    const data = vehicles.map((vehicle) => ({
+      id: vehicle.id,
+      label: vehicle.name,
+    }));
+
+    return {
+      message: 'Vehicles list fetched successfully',
+      data,
+    };
+  }
+
   async findOne(id: number, userId: number) {
     const vehicle = await this.vehiclesRepository.findOne({
       where: { id, isActive: true },

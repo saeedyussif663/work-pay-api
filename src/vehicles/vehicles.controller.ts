@@ -28,6 +28,11 @@ export class VehiclesController {
     return this.vehiclesService.getAll(req?.user?.sub, query);
   }
 
+  @Get('list')
+  list(@Req() req: Request) {
+    return this.vehiclesService.list(req?.user?.sub);
+  }
+
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number, @Req() req: Request) {
     if (!req.user) return;
