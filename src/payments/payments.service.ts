@@ -94,11 +94,13 @@ export class PaymentsService {
       .take(limit)
       .getMany();
 
-    const data = payments.map(({ vehicle, ...rest }) => ({
-      ...rest,
-      vehicleName: vehicle.name,
-      riderName: vehicle.rider,
-    }));
+    const data = payments.map(({ vehicle, ...rest }) => {
+      return {
+        ...rest,
+        vehicleName: vehicle.name,
+        riderName: vehicle.rider,
+      };
+    });
 
     const numberOfPages = Math.ceil(total / limit);
 
@@ -134,9 +136,20 @@ export class PaymentsService {
 
     const { vehicle, ...rest } = payment;
 
+    const payments = await this.paymentsRepository.find({
+      where: { vehicle: { id: vehicle.id } },
+      order: { paidAt: 'DESC' },
+    });
+    const projection = calculateCompletionProjection(vehicle, payments);
+
     return {
       message: 'Payment fetched successfully',
-      data: { ...rest, vehicleName: vehicle.name, riderName: vehicle.rider },
+      data: {
+        ...rest,
+        vehicleName: vehicle.name,
+        riderName: vehicle.rider,
+        ...projection,
+      },
     };
   }
 

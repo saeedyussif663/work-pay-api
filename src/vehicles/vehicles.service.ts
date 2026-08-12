@@ -95,15 +95,18 @@ export class VehiclesService {
 
     const vehicles = await this.vehiclesRepository
       .createQueryBuilder('vehicle')
-      .select(['vehicle.id', 'vehicle.name'])
+      .select(['vehicle.id', 'vehicle.rider'])
+      .leftJoin('vehicle.payments', 'payment')
       .where('vehicle.userId = :userId', { userId })
       .andWhere('vehicle.isActive = :isActive', { isActive: true })
+      .groupBy('vehicle.id')
+      .having('vehicle.expectedReturn > COALESCE(SUM(payment.amount), 0)')
       .orderBy('vehicle.name', 'ASC')
       .getMany();
 
     const data = vehicles.map((vehicle) => ({
       id: vehicle.id,
-      label: vehicle.name,
+      label: vehicle.rider,
     }));
 
     return {
