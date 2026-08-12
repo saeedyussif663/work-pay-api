@@ -13,7 +13,7 @@ export const dataSourceOptions: DataSourceOptions = {
   username: configService.get<string>('PGUSER'),
   password: configService.get<string>('PGPASSWORD'),
   database: configService.get<string>('PGDATABASE'),
-  synchronize: process.env.NODE_ENV === 'development',
+  synchronize: true,
 
   entities: [__dirname + '/../**/*.entity{.ts,.js}'],
 
