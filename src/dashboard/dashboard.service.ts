@@ -105,6 +105,7 @@ export class DashboardService {
     const payments = await this.paymentsRepository
       .createQueryBuilder('payment')
       .leftJoinAndSelect('payment.vehicle', 'vehicle')
+      .orderBy('payment.paidAt', 'DESC')
       .limit(4)
       .getMany();
 
