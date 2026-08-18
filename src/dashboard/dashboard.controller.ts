@@ -1,27 +1,34 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Req, UseGuards } from '@nestjs/common';
+import { type Request } from 'express';
+import { AuthGuard } from '../guards/auth.guard';
 import { DashboardService } from './dashboard.service';
 
+@UseGuards(AuthGuard)
 @Controller('dashboard')
 export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}
 
   @Get('stats')
-  getDashboardStats() {
-    return this.dashboardService.getDashboardStats();
+  getDashboardStats(@Req() req: Request) {
+    if (!req?.user) return;
+    return this.dashboardService.getDashboardStats(req.user);
   }
 
   @Get('monthly-payments')
-  getMonthlyPayments() {
-    return this.dashboardService.getMonthlyPayments();
+  getMonthlyPayments(@Req() req: Request) {
+    if (!req?.user) return;
+    return this.dashboardService.getMonthlyPayments(req.user);
   }
 
   @Get('rider-stats')
-  getRiderStats() {
-    return this.dashboardService.getRiderStats();
+  getRiderStats(@Req() req: Request) {
+    if (!req?.user) return;
+    return this.dashboardService.getRiderStats(req.user);
   }
 
   @Get('recent-payments')
-  getRecentPayments() {
-    return this.dashboardService.getRecentPayments();
+  getRecentPayments(@Req() req: Request) {
+    if (!req?.user) return;
+    return this.dashboardService.getRecentPayments(req.user);
   }
 }

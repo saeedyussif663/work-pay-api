@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { calculateCompletionProjection } from '../common/utils/payment-calculations';
 import { Payment } from '../payments/entities/payment.entity';
-import { MonthlyPayment } from '../types';
+import { MonthlyPayment, SignedUser } from '../types';
 import { Vehicle } from '../vehicles/entities/vehicle.entity';
 
 @Injectable()
@@ -15,9 +15,15 @@ export class DashboardService {
     private readonly paymentsRepository: Repository<Payment>,
   ) {}
 
-  async getDashboardStats() {
-    const vehicles = await this.vehiclesRepository.find();
-    const payments = await this.paymentsRepository.find();
+  async getDashboardStats(user: SignedUser) {
+    const vehicles = await this.vehiclesRepository.find({
+      relations: { user: true },
+      where: { user: { id: user.sub } },
+    });
+    const payments = await this.paymentsRepository.find({
+      relations: { vehicle: { user: true } },
+      where: { vehicle: { user: { id: user?.sub } } },
+    });
 
     const totalVehicles = vehicles.length;
     const totalPayments = payments.reduce(
@@ -44,11 +50,14 @@ export class DashboardService {
     };
   }
 
-  async getMonthlyPayments(): Promise<MonthlyPayment[]> {
+  async getMonthlyPayments(user: SignedUser): Promise<MonthlyPayment[]> {
     const payments = await this.paymentsRepository
       .createQueryBuilder('payment')
+      .leftJoin('payment.vehicle', 'vehicle')
+      .leftJoin('vehicle.user', 'user')
       .select("TO_CHAR(payment.paidAt, 'YYYY-MM')", 'month')
       .addSelect('SUM(payment.amount)', 'total')
+      .where('user.id = :id', { id: user.sub })
       .groupBy("TO_CHAR(payment.paidAt, 'YYYY-MM')")
       .orderBy('month', 'ASC')
       .getRawMany<MonthlyPayment>();
@@ -59,10 +68,12 @@ export class DashboardService {
     }));
   }
 
-  async getRiderStats() {
+  async getRiderStats(user: SignedUser) {
     const vehicles = await this.vehiclesRepository
       .createQueryBuilder('vehicle')
       .leftJoinAndSelect('vehicle.payments', 'payment')
+      .leftJoinAndSelect('vehicle.user', 'user')
+      .where('user.id = :id', { id: user.sub })
       .getMany();
 
     const data = vehicles.map((vehicle) => {
@@ -101,10 +112,12 @@ export class DashboardService {
     };
   }
 
-  async getRecentPayments() {
+  async getRecentPayments(user: SignedUser) {
     const payments = await this.paymentsRepository
       .createQueryBuilder('payment')
       .leftJoinAndSelect('payment.vehicle', 'vehicle')
+      .leftJoinAndSelect('vehicle.user', 'user')
+      .where('user.id = :id', { id: user?.sub })
       .orderBy('payment.paidAt', 'DESC')
       .limit(4)
       .getMany();
